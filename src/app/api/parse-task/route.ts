@@ -44,6 +44,12 @@ export async function POST(req: Request) {
                     type: Type.STRING,
                     nullable: true,
                     description: `ISO 8601 date string, or null if no date is specified. Assume today's baseline date is ${new Date().toISOString()}`
+                },
+                recurrence: {
+                    type: Type.STRING,
+                    enum: ["daily", "weekly", "monthly"],
+                    nullable: true,
+                    description: "If the user mentions a repeating schedule (e.g. 'every day', 'weekly'), extract it. Otherwise null."
                 }
             },
             required: ["title", "category", "priority"]
