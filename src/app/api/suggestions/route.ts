@@ -27,7 +27,7 @@ export async function POST(req: Request) {
         };
 
         const result = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-1.5-flash",
             contents: `Suggest 3 new tasks based on these existing ones: ${JSON.stringify(tasks)}`,
             config: {
                 systemInstruction: "You are an expert personal productivity assistant. Suggest 3 NEW tasks that would help the user be more balanced or productive. If they have many work tasks, suggest a personal self-care task. If they have a Personal Project, suggest a related follow-up. Be friendly and encouraging.",
@@ -35,6 +35,10 @@ export async function POST(req: Request) {
                 responseSchema: responseSchema,
             }
         });
+
+        if (!result.text) {
+            throw new Error("No content returned from Gemini");
+        }
 
         const suggestions = JSON.parse(result.text);
         return NextResponse.json(suggestions);

@@ -56,7 +56,7 @@ export async function POST(req: Request) {
         };
 
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-1.5-flash",
             contents: `Parse this task: "${input}"`,
             config: {
                 systemInstruction: "You are an intelligent task parsing assistant. Extract task details exactly according to the schema.",
