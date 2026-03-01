@@ -38,7 +38,7 @@ export async function POST(req: Request) {
         };
 
         const result = await ai.models.generateContent({
-            model: "gemini-1.5-flash",
+            model: "gemini-2.5-flash",
             contents: `Subject: ${subject}\n\nFrom: ${from}\n\nBody: ${text}`,
             config: {
                 systemInstruction: "You are an assistant that turns emails into todo tasks. Subject and body are provided. Extract title, category (work/personal), priority (high/med/low), and due date (ISO string).",

@@ -34,7 +34,7 @@ export async function POST(req: Request) {
         };
 
         const result = await ai.models.generateContent({
-            model: "gemini-1.5-flash",
+            model: "gemini-2.5-flash",
             contents: `Slack message: "${slackText}"`,
             config: {
                 systemInstruction: "Turn this Slack message into a todo task. Extract title, category, priority, and due date. Return JSON.",
