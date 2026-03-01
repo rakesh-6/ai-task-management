@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { GoogleGenAI, Type, Schema } from "@google/genai";
 
 export async function POST(req: Request) {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey || apiKey === "dummy_key_for_build") {
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
         return NextResponse.json(
-            { error: "Server Configuration Error: OPENAI_API_KEY is missing." },
+            { error: "Server Configuration Error: GEMINI_API_KEY is missing." },
             { status: 500 }
         );
     }
-    const openai = new OpenAI({ apiKey });
+
+    const ai = new GoogleGenAI({ apiKey });
+
     try {
         const { input } = await req.json();
 
@@ -20,42 +23,55 @@ export async function POST(req: Request) {
             );
         }
 
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini", // fast and effective for parsing
-            messages: [
-                {
-                    role: "system",
-                    content: `You are an intelligent task parsing assistant. 
-Extract the task details from the user's natural language input.
-Return a JSON object matching this schema exactly:
-{
-  "title": "A clear, concise description of the task",
-  "category": "work" | "personal",
-  "priority": "high" | "med" | "low",
-  "dueDate": "ISO 8601 date string, or null if no date is specified. Assume current time is ${new Date().toISOString()} for relative dates."
-}
-If a category isn't obvious, default to "personal".
-If priority isn't obvious, default to "med".`
+        const responseSchema: Schema = {
+            type: Type.OBJECT,
+            properties: {
+                title: {
+                    type: Type.STRING,
+                    description: "A clear, concise description of the task without dates or priority words."
                 },
-                {
-                    role: "user",
-                    content: input,
+                category: {
+                    type: Type.STRING,
+                    enum: ["work", "personal"],
+                    description: "If a category isn't obvious, default to 'personal'."
+                },
+                priority: {
+                    type: Type.STRING,
+                    enum: ["high", "med", "low"],
+                    description: "If priority isn't obvious, default to 'med'."
+                },
+                dueDate: {
+                    type: Type.STRING,
+                    nullable: true,
+                    description: `ISO 8601 date string, or null if no date is specified. Assume today's baseline date is ${new Date().toISOString()}`
                 }
-            ],
-            response_format: { type: "json_object" },
+            },
+            required: ["title", "category", "priority"]
+        };
+
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: `Parse this task: "${input}"`,
+            config: {
+                systemInstruction: "You are an intelligent task parsing assistant. Extract task details exactly according to the schema.",
+                responseMimeType: "application/json",
+                responseSchema: responseSchema,
+            }
         });
 
-        const parsedContent = completion.choices[0].message.content;
+        const parsedContent = response.text;
+
         if (!parsedContent) {
-            throw new Error("No content returned from OpenAI");
+            throw new Error("No content returned from Gemini");
         }
 
         const taskData = JSON.parse(parsedContent);
         return NextResponse.json(taskData);
-    } catch (error) {
+
+    } catch (error: any) {
         console.error("Task parsing error:", error);
         return NextResponse.json(
-            { error: "Failed to parse task" },
+            { error: error?.message || "Failed to parse task via Gemini" },
             { status: 500 }
         );
     }
