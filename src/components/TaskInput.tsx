@@ -29,7 +29,8 @@ export function TaskInput({ onTaskCreated }: TaskInputProps) {
             });
 
             if (!response.ok) {
-                throw new Error("Failed to parse task");
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || "Failed to parse task");
             }
 
             const data = await response.json();
@@ -47,7 +48,7 @@ export function TaskInput({ onTaskCreated }: TaskInputProps) {
             onTaskCreated(newTask);
             setInput("");
         } catch (err: any) {
-            setError("I couldn't understand that. Please try again.");
+            setError(err.message || "I couldn't understand that. Please try again.");
         } finally {
             setIsLoading(false);
         }
