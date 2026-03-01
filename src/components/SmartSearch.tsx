@@ -34,8 +34,11 @@ export function SmartSearch({ tasks, onResultsFound }: SmartSearchProps) {
             onResultsFound(data.filteredTaskIds, data.explanation);
             setHasActiveSearch(true);
             toast.success("Filtered by AI");
-        } catch (error) {
-            toast.error("AI Search failed");
+        } catch (error: any) {
+            console.error("AI Search Error:", error);
+            const errorMessage = error instanceof Error ? error.message : "AI Search failed";
+            toast.error(errorMessage);
+            onResultsFound(null, null); // Clear results on error
         } finally {
             setIsSearching(false);
         }

@@ -29,7 +29,7 @@ export async function POST(req: Request) {
         };
 
         const result = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-1.5-flash",
             contents: `Query: "${query}" on Tasks: ${JSON.stringify(tasks.map((t: any) => ({ id: t.id, title: t.title, category: t.category, priority: t.priority, dueDate: t.dueDate, completed: t.completed })))}`,
             config: {
                 systemInstruction: "You are a task search assistant. Filter task IDs based on the user's query. Match categories, priorities, dates, or keywords. If they ask for 'work tasks', include all work category. If they ask for 'due today', match dates. Be smart about synonyms. Be friendly in the explanation.",
@@ -38,11 +38,16 @@ export async function POST(req: Request) {
             }
         });
 
-        if (!result.text) {
+        // The @google/genai SDK provides .text as a property on the result
+        const responseText = result.text;
+
+        if (!responseText) {
             throw new Error("No content returned from Gemini");
         }
 
-        const searchResult = JSON.parse(result.text);
+        // Clean potentially markdown-wrapped response
+        const cleanJson = responseText.replace(/^```json\n?|\n?```$/g, "").trim();
+        const searchResult = JSON.parse(cleanJson);
         return NextResponse.json(searchResult);
     } catch (error: any) {
         console.error("Search Error:", error);

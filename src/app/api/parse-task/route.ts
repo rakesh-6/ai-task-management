@@ -55,8 +55,8 @@ export async function POST(req: Request) {
             required: ["title", "category", "priority"]
         };
 
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+        const result = await ai.models.generateContent({
+            model: "gemini-1.5-flash",
             contents: `Parse this task: "${input}"`,
             config: {
                 systemInstruction: "You are an intelligent task parsing assistant. Extract task details exactly according to the schema.",
@@ -65,13 +65,16 @@ export async function POST(req: Request) {
             }
         });
 
-        const parsedContent = response.text;
+        // The @google/genai SDK provides .text as a property on the result
+        const responseText = result.text;
 
-        if (!parsedContent) {
+        if (!responseText) {
             throw new Error("No content returned from Gemini");
         }
 
-        const taskData = JSON.parse(parsedContent);
+        // Clean potentially markdown-wrapped response
+        const cleanJson = responseText.replace(/^```json\n?|\n?```$/g, "").trim();
+        const taskData = JSON.parse(cleanJson);
         return NextResponse.json(taskData);
 
     } catch (error: any) {
