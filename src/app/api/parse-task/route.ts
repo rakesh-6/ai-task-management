@@ -2,9 +2,14 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
 export async function POST(req: Request) {
-    const openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY || "dummy_key_for_build",
-    });
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey || apiKey === "dummy_key_for_build") {
+        return NextResponse.json(
+            { error: "Server Configuration Error: OPENAI_API_KEY is missing." },
+            { status: 500 }
+        );
+    }
+    const openai = new OpenAI({ apiKey });
     try {
         const { input } = await req.json();
 
