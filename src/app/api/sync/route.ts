@@ -4,24 +4,25 @@ import { addTask } from "@/lib/kv";
 import { v4 as uuidv4 } from "uuid";
 import { Task } from "@/types";
 
-/**
- * Handle incoming emails from a service like SendGrid Inbound Parse or Postmark.
- * Typical payload contains 'subject', 'from', 'text' or 'html'.
- */
 export async function POST(req: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return NextResponse.json({ error: "Missing GEMINI_API_KEY" }, { status: 500 });
 
     try {
-        const body = await req.json();
+        const { type } = await req.json();
 
-        // Extract common email fields
-        const subject = body.subject || "";
-        const from = body.from || "";
-        const text = body.text || body.html || "";
+        // Simulate fetching external content based on type
+        let content = "";
+        let source = "";
 
-        if (!text && !subject) {
-            return NextResponse.json({ ok: true, message: "Empty email, skipping" });
+        if (type === "email") {
+            content = "Subject: Reminder: Project Deadline\nFrom: boss@company.com\nBody: Hey, just a reminder that the Q1 project dashboard needs to be finished by Friday. High priority.";
+            source = "Email Sync";
+        } else if (type === "slack") {
+            content = "Slack message: 'Can someone update the documentation for the API by Wednesday? Needs to be done soon. #dev-channel'";
+            source = "Slack Sync";
+        } else {
+            return NextResponse.json({ error: "Invalid sync type" }, { status: 400 });
         }
 
         const ai = new GoogleGenAI({ apiKey });
@@ -39,9 +40,9 @@ export async function POST(req: Request) {
 
         const result = await ai.models.generateContent({
             model: "gemini-2.5-flash",
-            contents: `Subject: ${subject}\n\nFrom: ${from}\n\nBody: ${text}`,
+            contents: content,
             config: {
-                systemInstruction: "You are an assistant that turns emails into todo tasks. Subject and body are provided. Extract title, category (work/personal), priority (high/med/low), and due date (ISO string).",
+                systemInstruction: `You are an assistant that turns ${source} messages into todo tasks. Extract title, category, priority, and due date. Return JSON.`,
                 responseMimeType: "application/json",
                 responseSchema: responseSchema,
             }
@@ -64,7 +65,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ ok: true, task: newTask });
     } catch (error: any) {
-        console.error("Email Webhook Error:", error);
+        console.error("Sync Error:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
